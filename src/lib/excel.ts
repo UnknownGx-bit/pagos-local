@@ -1,9 +1,9 @@
-import * as XLSX from 'xlsx'
 import { db, newId } from '../db'
 import type { Account, ImportPersonDraft, ImportPreview, ISODate, Person } from '../types'
 import { isISODate, toISODate } from './dates'
 
 type Cell = string | number | boolean | Date | null | undefined
+type XlsxModule = typeof import('xlsx')
 
 function compact(value: Cell) {
   return String(value ?? '').replace(/\s+/g, ' ').trim()
@@ -26,7 +26,7 @@ function splitDevices(value: Cell) {
   return compact(value).split(/\s*\+\s*|\r?\n/).map((item) => item.trim()).filter(Boolean)
 }
 
-function parseDate(value: Cell): ISODate | '' {
+function parseDate(value: Cell, XLSX: XlsxModule): ISODate | '' {
   if (value instanceof Date && !Number.isNaN(value.getTime())) {
     return toISODate(value.getFullYear(), value.getMonth() + 1, value.getDate())
   }
@@ -60,13 +60,13 @@ function columnByHeader(headers: Cell[], candidates: RegExp[]) {
   return headers.findIndex((header) => candidates.some((candidate) => candidate.test(normalized(header))))
 }
 
-function findDateColumn(headers: Cell[], rows: Cell[][], headerIndex: number) {
+function findDateColumn(headers: Cell[], rows: Cell[][], headerIndex: number, XLSX: XlsxModule) {
   let winner = -1
   let winnerScore = 0
   headers.forEach((header, column) => {
     const headerName = normalized(header)
     const headerWeight = /fecha|ingreso|precio mensual/.test(headerName) ? 2 : 0
-    const dateCount = rows.slice(headerIndex + 1).filter((row) => parseDate(row[column])).length
+    const dateCount = rows.slice(headerIndex + 1).filter((row) => parseDate(row[column], XLSX)).length
     const score = dateCount * 3 + headerWeight
     if (score > winnerScore) {
       winner = column
@@ -111,6 +111,7 @@ function readArrayBuffer(file: File): Promise<ArrayBuffer> {
 }
 
 export async function analyzeExcel(file: File, accounts: Account[]): Promise<ImportPreview> {
+  const XLSX = await import('xlsx')
   const workbook = XLSX.read(await readArrayBuffer(file), { type: 'array', cellDates: true })
   const existing = await db.people.toArray()
   const people: ImportPersonDraft[] = []
@@ -133,7 +134,7 @@ export async function analyzeExcel(file: File, accounts: Account[]): Promise<Imp
     const nameColumn = columnByHeader(headers, [/^nombre$/, /persona/])
     const phoneColumn = columnByHeader(headers, [/telefono/, /celular/])
     const deviceColumn = columnByHeader(headers, [/dispositivo/])
-    const dateColumn = findDateColumn(headers, rows, headerIndex)
+    const dateColumn = findDateColumn(headers, rows, headerIndex, XLSX)
     const monthColumns = headers
       .map((header, column) => ({ header: normalized(header), column }))
       .filter(({ header }) => /^mes\s*\d+/.test(header))
@@ -145,7 +146,7 @@ export async function analyzeExcel(file: File, accounts: Account[]): Promise<Imp
       const displayName = compact(row[nameColumn])
       if (!matchesPerson(displayName)) continue
       const phone = phoneValue(row[phoneColumn])
-      const joinDate = parseDate(row[dateColumn])
+      const joinDate = parseDate(row[dateColumn], XLSX)
       const reviewNotes: string[] = []
       const unknownPaymentValues: string[] = []
       let paidMonths = 0

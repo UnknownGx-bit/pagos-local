@@ -11,7 +11,7 @@ interface SettingsViewProps {
   accounts: Account[]
   settings: AppSettings
   onImportExcel: () => void
-  afterMutation: (message: string) => Promise<void>
+  afterMutation: (message: string) => void
 }
 
 export function SettingsView({ accounts, settings, onImportExcel, afterMutation }: SettingsViewProps) {
@@ -28,7 +28,7 @@ export function SettingsView({ accounts, settings, onImportExcel, afterMutation 
       await Promise.all(accounts.map((account) => db.accounts.update(account.id, { name: (names[account.id] || account.name).trim() })))
       await db.settings.update('app-settings', { reminderDaysBefore: Math.max(0, Math.trunc(days)), reminderTime: time })
     })
-    await afterMutation('Configuración guardada y recordatorios reprogramados.')
+    afterMutation('Configuración guardada y recordatorios reprogramados.')
   }
 
   async function readBackup(file?: File) {
@@ -42,13 +42,13 @@ export function SettingsView({ accounts, settings, onImportExcel, afterMutation 
     if (!restorePayload) return
     await restoreBackup(restorePayload)
     setRestorePayload(null)
-    await afterMutation('Copia restaurada correctamente.')
+    afterMutation('Copia restaurada correctamente.')
     navigate('/', { replace: true })
   }
 
   async function permissions() {
     const result = await requestNotificationPermission()
-    await afterMutation(result.display === 'granted' ? 'Permiso de notificaciones activado.' : notificationCapabilityLabel())
+    afterMutation(result.display === 'granted' ? 'Permiso de notificaciones activado.' : notificationCapabilityLabel())
   }
 
   return (
@@ -58,7 +58,7 @@ export function SettingsView({ accounts, settings, onImportExcel, afterMutation 
       <section className="settings-section"><h2>Recordatorios</h2><p>Android reprograma las notificaciones locales después de cada cambio.</p><div className="form-row"><label>Días antes<input type="number" min="0" max="30" value={days} onChange={(event) => setDays(Number(event.target.value))} /></label><label>Hora<input type="time" value={time} onChange={(event) => setTime(event.target.value)} /></label></div><button className="settings-button" onClick={() => void permissions()}><BellRing /><span><strong>Permisos de notificaciones</strong><small>{notificationCapabilityLabel()}</small></span></button></section>
       <button className="primary-button large save-settings" onClick={() => void save()}><Save size={19} />Guardar configuración</button>
       <section className="settings-section"><h2>Importar y exportar</h2><div className="settings-actions"><button onClick={onImportExcel}><FileSpreadsheet /><span><strong>Importar Excel</strong><small>Vista previa y revisión de datos</small></span></button><button onClick={() => void exportToExcel(settings)}><FileDown /><span><strong>Exportar a Excel</strong><small>Personas, fechas y estados</small></span></button><button onClick={() => void exportBackup()}><Download /><span><strong>Exportar copia</strong><small>Respaldo completo en JSON</small></span></button><button onClick={() => backupInput.current?.click()}><Upload /><span><strong>Importar copia</strong><small>Restaura todos los datos</small></span></button></div><input className="visually-hidden" ref={backupInput} type="file" accept="application/json,.json" onChange={(event) => void readBackup(event.target.files?.[0])} />{error && <p className="error-message">{error}</p>}</section>
-      <section className="settings-section about-card"><Info /><div><h2>Pagos Local 1.0</h2><p>Los datos viven en IndexedDB y no se envían a ningún servidor. La PWA funciona sin conexión; las notificaciones programadas con la app cerrada están disponibles en Android.</p></div></section>
+      <section className="settings-section about-card"><Info /><div><h2>Pagos Local 1.1</h2><p>Los datos viven en IndexedDB y no se envían a ningún servidor. La PWA funciona sin conexión; las notificaciones programadas con la app cerrada están disponibles en Android.</p></div></section>
       <Modal open={Boolean(restorePayload)} title="¿Restaurar esta copia?" description="Esta acción reemplazará las cuentas, personas, pagos y configuración actuales." onClose={() => setRestorePayload(null)}><div className="confirm-actions"><button className="secondary-button" onClick={() => setRestorePayload(null)}>Cancelar</button><button className="danger-button" onClick={() => void restore()}><RotateCcw size={17} />Restaurar</button></div></Modal>
     </main>
   )

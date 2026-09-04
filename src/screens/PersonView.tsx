@@ -8,13 +8,14 @@ import { deletePerson, registerPayment, updatePerson, type PersonInput } from '.
 import { Modal } from '../components/Modal'
 import { Stepper } from '../components/Stepper'
 import { PersonForm } from '../components/PersonForm'
+import { whatsappReminderUrl } from '../lib/whatsapp'
 
 interface PersonViewProps {
   accounts: Account[]
   people: Person[]
   payments: Payment[]
   settings: AppSettings
-  afterMutation: (message: string) => Promise<void>
+  afterMutation: (message: string) => void
 }
 
 export function PersonView({ accounts, people, payments, settings, afterMutation }: PersonViewProps) {
@@ -33,7 +34,7 @@ export function PersonView({ accounts, people, payments, settings, afterMutation
   const due = nextPaymentDate(person.joinDate, person.paidMonths)
   const period = coveredPeriod(person.joinDate, person.paidMonths)
   const personPayments = payments.filter((payment) => payment.personId === person.id).sort((a, b) => b.paidAt.localeCompare(a.paidAt))
-  const whatsappNumber = person.phone.replace(/\D/g, '')
+  const whatsappUrl = whatsappReminderUrl(person.phone, due)
 
   async function pay() {
     setSaving(true)
@@ -41,24 +42,24 @@ export function PersonView({ accounts, people, payments, settings, afterMutation
       await registerPayment(person!, months)
       setPaymentOpen(false)
       setMonths(1)
-      await afterMutation(`Pago de ${months} ${months === 1 ? 'mes registrado' : 'meses registrado'}.`)
+      afterMutation(`Pago de ${months} ${months === 1 ? 'mes registrado' : 'meses registrados'}.`)
     } finally { setSaving(false) }
   }
 
   async function edit(input: PersonInput) {
     await updatePerson(person!.id, input)
     setEditOpen(false)
-    await afterMutation('Datos actualizados.')
+    afterMutation('Datos actualizados.')
   }
 
   async function toggleUnpaid() {
     await updatePerson(person!.id, { manuallyUnpaid: !person!.manuallyUnpaid })
-    await afterMutation(person!.manuallyUnpaid ? 'Marca de pago pendiente retirada.' : 'Marcado como “No ha pagado”.')
+    afterMutation(person!.manuallyUnpaid ? 'Marca de pago pendiente retirada.' : 'Marcado como “No ha pagado”.')
   }
 
   async function remove() {
     await deletePerson(person!.id)
-    await afterMutation('Persona e historial eliminados.')
+    afterMutation('Persona e historial eliminados.')
     navigate(`/cuenta/${person!.accountId}`, { replace: true })
   }
 
@@ -75,7 +76,7 @@ export function PersonView({ accounts, people, payments, settings, afterMutation
       <div className="profile-actions">
         <button className="primary-button large" onClick={() => setPaymentOpen(true)}><WalletCards size={20} />Registrar pago</button>
         <button className={`secondary-button large ${person.manuallyUnpaid ? 'danger-outline' : ''}`} onClick={() => void toggleUnpaid()}>{person.manuallyUnpaid ? 'Quitar “No ha pagado”' : 'Marcar “No ha pagado”'}</button>
-        {whatsappNumber && <a className="whatsapp-button" href={`https://wa.me/${whatsappNumber}`} target="_blank" rel="noreferrer"><MessageCircle size={20} />WhatsApp</a>}
+        {whatsappUrl && <a className="whatsapp-button" href={whatsappUrl} target="_blank" rel="noreferrer"><MessageCircle size={20} />Enviar recordatorio</a>}
       </div>
       <section className="history-panel"><div className="inline-heading"><History size={19} /><div><h2>Historial de pagos</h2><p>{personPayments.length} movimientos</p></div></div>{personPayments.length ? personPayments.map((payment) => <article key={payment.id}><time>{new Intl.DateTimeFormat('es-MX', { dateStyle: 'medium' }).format(new Date(payment.paidAt))}</time><div><strong>Pago recibido: {payment.months} {payment.months === 1 ? 'mes' : 'meses'}</strong><span>Vencimiento anterior: {formatDate(payment.previousDueDate)}</span><span>Nuevo vencimiento: {formatDate(payment.newDueDate)}</span></div></article>) : <div className="empty-state compact">Aún no hay pagos registrados desde la app.</div>}</section>
       <button className="delete-link" onClick={() => setDeleteOpen(true)}><Trash2 size={17} />Eliminar persona</button>

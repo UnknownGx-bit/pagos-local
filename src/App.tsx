@@ -43,9 +43,7 @@ function Application() {
     if (settings.onboarded) void rescheduleNotifications(people, settings).catch(() => undefined)
   }, [people, settings])
 
-  const afterMutation = useCallback(async (message: string) => {
-    const [freshPeople, freshSettings] = await Promise.all([db.people.toArray(), db.settings.get('app-settings')])
-    if (freshSettings) await rescheduleNotifications(freshPeople, freshSettings).catch(() => undefined)
+  const afterMutation = useCallback((message: string) => {
     setToast(message)
   }, [])
 
@@ -59,7 +57,7 @@ function Application() {
   async function addPerson(input: PersonInput) {
     const person = await createPerson(input)
     setAddOpen(false)
-    await afterMutation('Persona agregada.')
+    afterMutation('Persona agregada.')
     navigate(`/persona/${person.id}`)
   }
 
@@ -73,7 +71,7 @@ function Application() {
   }
 
   if (!settings.onboarded) {
-    return <><Welcome onImport={() => setImportOpen(true)} onStart={() => void startEmpty()} /><ImportExcelDialog open={importOpen} accounts={accounts} onClose={() => setImportOpen(false)} onImported={(message) => void afterMutation(message)} /></>
+    return <><Welcome onImport={() => setImportOpen(true)} onStart={() => void startEmpty()} /><ImportExcelDialog open={importOpen} accounts={accounts} onClose={() => setImportOpen(false)} onImported={afterMutation} /></>
   }
 
   return (
@@ -86,7 +84,7 @@ function Application() {
         <Route path="/configuracion" element={<SettingsView accounts={accounts} settings={settings} onImportExcel={() => setImportOpen(true)} afterMutation={afterMutation} />} />
       </Routes>
       <Modal open={addOpen} title="Agregar persona" description="La fecha de ingreso se completa automáticamente y puedes cambiarla." onClose={() => setAddOpen(false)} size="large"><PersonForm key={`${suggestedAccountId}-${suggestedNumber}`} accounts={accounts} suggestedAccountId={suggestedAccountId} suggestedNumber={suggestedNumber} onSubmit={addPerson} onCancel={() => setAddOpen(false)} /></Modal>
-      <ImportExcelDialog open={importOpen} accounts={accounts} onClose={() => setImportOpen(false)} onImported={(message) => void afterMutation(message)} />
+      <ImportExcelDialog open={importOpen} accounts={accounts} onClose={() => setImportOpen(false)} onImported={afterMutation} />
       {toast && <div className="toast" role="status"><CheckCircle2 size={19} />{toast}</div>}
     </AppFrame>
   )

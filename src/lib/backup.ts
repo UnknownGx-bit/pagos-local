@@ -1,4 +1,3 @@
-import * as XLSX from 'xlsx'
 import { db } from '../db'
 import type { AppSettings, BackupPayload, ISODate } from '../types'
 import { downloadBlob } from './files'
@@ -49,6 +48,7 @@ export async function restoreBackup(payload: BackupPayload) {
 }
 
 export async function exportToExcel(settings: AppSettings) {
+  const XLSX = await import('xlsx')
   const [accounts, people] = await Promise.all([db.accounts.toArray(), db.people.toArray()])
   const accountNames = new Map(accounts.map((account) => [account.id, account.name]))
   const rows = people.map((person) => {

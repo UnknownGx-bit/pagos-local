@@ -4,6 +4,7 @@ import type { Account, ISODate, Person } from '../types'
 import type { PersonInput } from '../db'
 import { Stepper } from './Stepper'
 import { todayISO } from '../lib/dates'
+import { personReviewNotes } from '../lib/personReview'
 
 interface PersonFormProps {
   accounts: Account[]
@@ -36,9 +37,15 @@ export function PersonForm({ accounts, initial, suggestedAccountId, suggestedNum
 
   async function submit(event: React.FormEvent) {
     event.preventDefault()
+    if (saving) return
     setError('')
     if (!accountId || !displayName.trim() || !joinDate) {
       setError('Completa la cuenta, el nombre y la fecha de ingreso.')
+      return
+    }
+    const reviewNotes = personReviewNotes(phone, joinDate, paidMonths)
+    if (reviewNotes.length) {
+      setError(reviewNotes[0]!)
       return
     }
     setSaving(true)
@@ -52,8 +59,8 @@ export function PersonForm({ accounts, initial, suggestedAccountId, suggestedNum
         joinDate,
         paidMonths,
         manuallyUnpaid,
-        needsReview: initial?.needsReview ?? false,
-        reviewNotes: initial?.reviewNotes ?? [],
+        needsReview: false,
+        reviewNotes: [],
       })
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'No se pudo guardar.')
@@ -69,7 +76,7 @@ export function PersonForm({ accounts, initial, suggestedAccountId, suggestedNum
         <label>Número<input type="number" min="1" inputMode="numeric" value={personNumber ?? ''} onChange={(event) => setPersonNumber(Number(event.target.value))} /></label>
         <label>Nombre<input value={displayName} onChange={(event) => setDisplayName(event.target.value)} placeholder="Persona 1" /></label>
       </div>
-      <label>Teléfono<input type="tel" inputMode="tel" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="Número celular" /></label>
+      <label>Teléfono<input type="tel" inputMode="tel" value={phone} onChange={(event) => { setPhone(event.target.value); setError('') }} placeholder="Número celular" /></label>
       <fieldset className="device-fieldset">
         <legend>Dispositivos</legend>
         {devices.map((device, index) => (
@@ -80,12 +87,12 @@ export function PersonForm({ accounts, initial, suggestedAccountId, suggestedNum
         ))}
         <button className="text-button" type="button" onClick={() => setDevices((current) => [...current, ''])}><Plus size={16} />Agregar dispositivo</button>
       </fieldset>
-      <label>Fecha de ingreso<input type="date" value={joinDate} onChange={(event) => setJoinDate(event.target.value as ISODate)} /></label>
+      <label>Fecha de ingreso<input type="date" value={joinDate} onChange={(event) => { setJoinDate(event.target.value as ISODate); setError('') }} /></label>
       <div className="field-label">Meses pagados</div>
       <Stepper label="Meses pagados" value={paidMonths} onChange={setPaidMonths} />
       <label className="check-row"><input type="checkbox" checked={manuallyUnpaid} onChange={(event) => setManuallyUnpaid(event.target.checked)} /><span>Marcar como “No ha pagado”</span></label>
       {error && <p className="error-message">{error}</p>}
-      <div className="form-actions"><button className="secondary-button" type="button" onClick={onCancel}>Cancelar</button><button className="primary-button" disabled={saving}>{saving ? 'Guardando…' : submitLabel}</button></div>
+      <div className="form-actions"><button className="secondary-button" type="button" onClick={onCancel} disabled={saving}>Cancelar</button><button className="primary-button" type="submit" disabled={saving}>{saving ? 'Guardando…' : submitLabel}</button></div>
     </form>
   )
 }

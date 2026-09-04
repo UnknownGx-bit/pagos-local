@@ -4,6 +4,7 @@ import type { Account, ImportPersonDraft, ImportPreview, ISODate } from '../type
 import { analyzeExcel, commitExcelImport } from '../lib/excel'
 import { db } from '../db'
 import { Modal } from './Modal'
+import { reconcileImportedReviewNotes } from '../lib/personReview'
 
 interface ImportExcelDialogProps {
   open: boolean
@@ -19,7 +20,21 @@ export function ImportExcelDialog({ open, accounts, onClose, onImported }: Impor
   const [error, setError] = useState('')
 
   function updateDraft(index: number, patch: Partial<ImportPersonDraft>) {
-    setPreview((current) => current ? { ...current, people: current.people.map((person, itemIndex) => itemIndex === index ? { ...person, ...patch } : person) } : current)
+    setPreview((current) => current ? {
+      ...current,
+      people: current.people.map((person, itemIndex) => {
+        if (itemIndex !== index) return person
+        const next = { ...person, ...patch }
+        const changedFields = [
+          ...(patch.phone !== undefined ? ['phone' as const] : []),
+          ...(patch.joinDate !== undefined ? ['joinDate' as const] : []),
+          ...(patch.paidMonths !== undefined ? ['paidMonths' as const] : []),
+        ]
+        const resolved = reconcileImportedReviewNotes(person.reviewNotes, next, changedFields)
+        const canAutoInclude = resolved.length === 0 && (!next.duplicatePersonId || next.duplicateAction !== 'skip')
+        return { ...next, reviewNotes: resolved, include: patch.include ?? (canAutoInclude ? true : next.include) }
+      }),
+    } : current)
   }
 
   async function chooseFile(file?: File) {
