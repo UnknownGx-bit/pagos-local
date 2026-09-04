@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.vite/
+.idea/
+.vscode/
+*.log
+android/.gradle/
+android/local.properties
+android/app/build/
+android/build/
+*.keystore
+*.jks
