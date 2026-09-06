@@ -26,14 +26,32 @@ export async function exportBackup() {
 
 export function parseBackup(text: string): BackupPayload {
   const payload = JSON.parse(text) as Partial<BackupPayload>
-  if (payload.format !== 'pagos-local-backup' || payload.version !== 1) throw new Error('El archivo no es una copia compatible de Pagos Local.')
+  if (!payload || payload.format !== 'pagos-local-backup' || payload.version !== 1) throw new Error('El archivo no es una copia compatible de Pagos Local.')
   if (!Array.isArray(payload.accounts) || !Array.isArray(payload.people) || !Array.isArray(payload.payments) || !payload.settings) {
     throw new Error('La copia está incompleta.')
   }
   for (const person of payload.people) {
-    if (!person.id || !person.accountId || !person.displayName || !isISODate(person.joinDate)) {
+    if (!person || !person.id || !person.accountId || !person.displayName || !isISODate(person.joinDate)
+      || !Array.isArray(person.devices) || !person.devices.every((item) => typeof item === 'string')
+      || !Array.isArray(person.reviewNotes) || !person.reviewNotes.every((item) => typeof item === 'string')
+      || typeof person.phone !== 'string' || !Number.isInteger(person.paidMonths) || person.paidMonths < 0
+      || (person.suspended !== undefined && typeof person.suspended !== 'boolean')) {
       throw new Error('La copia contiene una persona con datos inválidos.')
     }
+  }
+  const accountIds = new Set(payload.accounts.map((account) => account?.id))
+  const personIds = new Set(payload.people.map((person) => person.id))
+  if (accountIds.size !== payload.accounts.length || personIds.size !== payload.people.length
+    || payload.accounts.some((account) => !account || typeof account.id !== 'string' || !account.id || typeof account.name !== 'string' || !Number.isFinite(account.order))
+    || payload.people.some((person) => !accountIds.has(person.accountId))
+    || payload.settings.id !== 'app-settings' || typeof payload.settings.onboarded !== 'boolean'
+    || !Number.isInteger(payload.settings.reminderDaysBefore) || payload.settings.reminderDaysBefore < 0 || payload.settings.reminderDaysBefore > 30
+    || !/^([01]\d|2[0-3]):[0-5]\d$/.test(payload.settings.reminderTime)
+    || new Set(payload.payments.map((payment) => payment?.id)).size !== payload.payments.length
+    || payload.payments.some((payment) => !payment || !payment.id || !personIds.has(payment.personId)
+      || !Number.isInteger(payment.months) || payment.months < 1 || !Number.isFinite(Date.parse(payment.paidAt))
+      || !isISODate(payment.previousDueDate) || !isISODate(payment.newDueDate))) {
+    throw new Error('La copia contiene cuentas, pagos o configuración inválidos. Tus datos actuales no se han modificado.')
   }
   return {
     ...payload,
@@ -42,6 +60,7 @@ export function parseBackup(text: string): BackupPayload {
 }
 
 export async function restoreBackup(payload: BackupPayload) {
+  payload = parseBackup(JSON.stringify(payload))
   await db.transaction('rw', db.accounts, db.people, db.payments, db.settings, async () => {
     await Promise.all([db.accounts.clear(), db.people.clear(), db.payments.clear(), db.settings.clear()])
     await db.accounts.bulkAdd(payload.accounts)

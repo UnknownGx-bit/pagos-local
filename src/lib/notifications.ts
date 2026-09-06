@@ -50,7 +50,15 @@ export async function requestNotificationPermission() {
   return permission
 }
 
-export async function rescheduleNotifications(people: Person[], settings: AppSettings) {
+let scheduleQueue: Promise<unknown> = Promise.resolve()
+
+export function rescheduleNotifications(people: Person[], settings: AppSettings) {
+  const task = scheduleQueue.then(() => applyNotificationSchedule(people, settings))
+  scheduleQueue = task.catch(() => undefined)
+  return task
+}
+
+async function applyNotificationSchedule(people: Person[], settings: AppSettings) {
   if (!Capacitor.isNativePlatform()) return { native: false, scheduled: 0 }
   const permission = await LocalNotifications.checkPermissions()
   if (permission.display !== 'granted') return { native: true, scheduled: 0 }

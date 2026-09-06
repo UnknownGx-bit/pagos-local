@@ -15,6 +15,8 @@ import { PersonView } from './screens/PersonView'
 import { SettingsView } from './screens/SettingsView'
 import { PaymentsView } from './screens/PaymentsView'
 import { useWebMCP } from './hooks/useWebMCP'
+import { useAppNavigation } from './hooks/useAppNavigation'
+import { todayISO } from './lib/dates'
 
 function Application() {
   const navigate = useNavigate()
@@ -31,7 +33,15 @@ function Application() {
   const [suggestedAccountId, setSuggestedAccountId] = useState('account-1')
   const [suggestedNumber, setSuggestedNumber] = useState(1)
   const [toast, setToast] = useState('')
+  const [today, setToday] = useState(todayISO())
   useWebMCP()
+  useAppNavigation()
+  useEffect(() => {
+    const refresh = () => setToday(todayISO())
+    const timer = window.setInterval(refresh, 30_000)
+    document.addEventListener('visibilitychange', refresh)
+    return () => { window.clearInterval(timer); document.removeEventListener('visibilitychange', refresh) }
+  }, [])
 
   useEffect(() => {
     if (!toast) return
@@ -41,7 +51,7 @@ function Application() {
 
   useEffect(() => {
     if (settings.onboarded) void rescheduleNotifications(people, settings).catch(() => undefined)
-  }, [people, settings])
+  }, [people, settings, today])
 
   const afterMutation = useCallback((message: string) => {
     setToast(message)

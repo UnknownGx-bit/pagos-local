@@ -25,11 +25,18 @@ export function SettingsView({ accounts, settings, onImportExcel, afterMutation 
   const [exporting, setExporting] = useState<'excel' | 'backup' | null>(null)
 
   async function save() {
+    setError('')
+    if (!Number.isInteger(days) || days < 0 || days > 30 || !/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) {
+      setError('Indica de 0 a 30 días y una hora válida para los recordatorios.')
+      return
+    }
+    try {
     await db.transaction('rw', db.accounts, db.settings, async () => {
       await Promise.all(accounts.map((account) => db.accounts.update(account.id, { name: (names[account.id] || account.name).trim() })))
       await db.settings.update('app-settings', { reminderDaysBefore: Math.max(0, Math.trunc(days)), reminderTime: time })
     })
     afterMutation('Configuración guardada y recordatorios reprogramados.')
+    } catch (reason) { setError(reason instanceof Error ? reason.message : 'No se pudo guardar la configuración.') }
   }
 
   async function readBackup(file?: File) {
@@ -41,15 +48,22 @@ export function SettingsView({ accounts, settings, onImportExcel, afterMutation 
 
   async function restore() {
     if (!restorePayload) return
+    try {
     await restoreBackup(restorePayload)
     setRestorePayload(null)
     afterMutation('Copia restaurada correctamente.')
     navigate('/', { replace: true })
+    } catch (reason) {
+      setRestorePayload(null)
+      setError(reason instanceof Error ? reason.message : 'No se pudo restaurar la copia.')
+    }
   }
 
   async function permissions() {
+    try {
     const result = await requestNotificationPermission()
     afterMutation(result.display === 'granted' ? 'Permiso de notificaciones activado.' : notificationCapabilityLabel())
+    } catch (reason) { setError(reason instanceof Error ? reason.message : 'No se pudieron activar las notificaciones.') }
   }
 
   async function exportFile(kind: 'excel' | 'backup') {
@@ -73,7 +87,7 @@ export function SettingsView({ accounts, settings, onImportExcel, afterMutation 
       <section className="settings-section"><h2>Recordatorios</h2><p>Android reprograma las notificaciones locales después de cada cambio.</p><div className="form-row"><label>Días antes<input type="number" min="0" max="30" value={days} onChange={(event) => setDays(Number(event.target.value))} /></label><label>Hora<input type="time" value={time} onChange={(event) => setTime(event.target.value)} /></label></div><button className="settings-button" onClick={() => void permissions()}><BellRing /><span><strong>Permisos de notificaciones</strong><small>{notificationCapabilityLabel()}</small></span></button></section>
       <button className="primary-button large save-settings" onClick={() => void save()}><Save size={19} />Guardar configuración</button>
       <section className="settings-section"><h2>Importar y exportar</h2><div className="settings-actions"><button onClick={onImportExcel} disabled={Boolean(exporting)}><FileSpreadsheet /><span><strong>Importar Excel</strong><small>Vista previa y revisión de datos</small></span></button><button onClick={() => void exportFile('excel')} disabled={Boolean(exporting)}><FileDown /><span><strong>{exporting === 'excel' ? 'Preparando Excel…' : 'Exportar a Excel'}</strong><small>Personas, fechas y estados</small></span></button><button onClick={() => void exportFile('backup')} disabled={Boolean(exporting)}><Download /><span><strong>{exporting === 'backup' ? 'Preparando copia…' : 'Exportar copia'}</strong><small>Respaldo completo en JSON</small></span></button><button onClick={() => backupInput.current?.click()} disabled={Boolean(exporting)}><Upload /><span><strong>Importar copia</strong><small>Restaura todos los datos</small></span></button></div><input className="visually-hidden" ref={backupInput} type="file" accept="application/json,.json" onChange={(event) => void readBackup(event.target.files?.[0])} />{error && <p className="error-message">{error}</p>}</section>
-      <section className="settings-section about-card"><Info /><div><h2>Pagos Local 1.3.0</h2><p>Los datos viven en IndexedDB y no se envían a ningún servidor. La PWA funciona sin conexión; las notificaciones programadas con la app cerrada están disponibles en Android.</p></div></section>
+      <section className="settings-section about-card"><Info /><div><h2>Pagos Local 1.3.1</h2><p>Los datos viven en IndexedDB y no se envían a ningún servidor. La PWA funciona sin conexión; las notificaciones programadas con la app cerrada están disponibles en Android.</p></div></section>
       <Modal open={Boolean(restorePayload)} title="¿Restaurar esta copia?" description="Esta acción reemplazará las cuentas, personas, pagos y configuración actuales." onClose={() => setRestorePayload(null)}><div className="confirm-actions"><button className="secondary-button" onClick={() => setRestorePayload(null)}>Cancelar</button><button className="danger-button" onClick={() => void restore()}><RotateCcw size={17} />Restaurar</button></div></Modal>
     </main>
   )

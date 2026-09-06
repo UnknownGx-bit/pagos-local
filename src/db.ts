@@ -62,10 +62,14 @@ export async function updatePerson(id: string, input: Partial<PersonInput>) {
 }
 
 export async function registerPayment(person: Person, months: number, paidAt = todayISO()) {
-  const safeMonths = Math.max(1, Math.trunc(months))
-  const previousDueDate = nextPaymentDate(person.joinDate, person.paidMonths)
-  const paidMonths = person.paidMonths + safeMonths
-  const newDueDate = nextPaymentDate(person.joinDate, paidMonths)
+  if (!Number.isInteger(months) || months < 1 || months > 120) throw new Error('Indica entre 1 y 120 meses.')
+  return db.transaction('rw', db.people, db.payments, async () => {
+  const current = await db.people.get(person.id)
+  if (!current) throw new Error('No se encontró la persona. Vuelve a abrir su perfil.')
+  const safeMonths = months
+  const previousDueDate = nextPaymentDate(current.joinDate, current.paidMonths)
+  const paidMonths = current.paidMonths + safeMonths
+  const newDueDate = nextPaymentDate(current.joinDate, paidMonths)
   const payment: Payment = {
     id: newId(),
     personId: person.id,
@@ -74,11 +78,10 @@ export async function registerPayment(person: Person, months: number, paidAt = t
     previousDueDate,
     newDueDate,
   }
-  await db.transaction('rw', db.people, db.payments, async () => {
     await db.people.update(person.id, { paidMonths, manuallyUnpaid: false, suspended: false, updatedAt: new Date().toISOString() })
     await db.payments.add(payment)
-  })
   return payment
+  })
 }
 
 export async function deletePerson(id: string) {

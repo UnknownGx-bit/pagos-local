@@ -9,6 +9,16 @@ beforeEach(async () => {
 })
 
 describe('persistencia de personas y pagos', () => {
+  it('acumula pagos concurrentes usando el registro actual y rechaza personas eliminadas', async () => {
+    const person = await createPerson({ accountId: 'account-1', personNumber: 1, displayName: 'Prueba', phone: '', devices: [], joinDate: '2026-08-06', paidMonths: 0, manuallyUnpaid: false, needsReview: false, reviewNotes: [] })
+    await Promise.all([registerPayment(person, 1), registerPayment(person, 2)])
+    expect((await db.people.get(person.id))?.paidMonths).toBe(3)
+    expect(await db.payments.count()).toBe(2)
+    await expect(registerPayment(person, NaN)).rejects.toThrow()
+    await deletePerson(person.id)
+    await expect(registerPayment(person, 1)).rejects.toThrow()
+    expect(await db.payments.count()).toBe(0)
+  })
   it('registra varios meses, mueve de cuenta y elimina el historial', async () => {
     const person = await createPerson({ accountId: 'account-1', personNumber: 1, displayName: 'Persona 1', phone: '555', devices: ['iPhone'], joinDate: '2026-08-06', paidMonths: 1, manuallyUnpaid: false, suspended: true, needsReview: false, reviewNotes: [] })
     const payment = await registerPayment(person, 2, '2026-09-03')

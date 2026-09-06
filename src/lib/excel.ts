@@ -209,7 +209,6 @@ export async function commitExcelImport(preview: ImportPreview) {
         joinDate: draft.joinDate,
         paidMonths: Math.max(0, Math.trunc(draft.paidMonths)),
         manuallyUnpaid: false,
-        suspended: false,
         needsReview: draft.reviewNotes.length > 0,
         reviewNotes: draft.reviewNotes,
         updatedAt: stamp,
@@ -218,7 +217,7 @@ export async function commitExcelImport(preview: ImportPreview) {
         await db.people.update(draft.duplicatePersonId, personData)
         updated += 1
       } else {
-        await db.people.add({ ...personData, id: newId(), createdAt: stamp })
+        await db.people.add({ ...personData, suspended: false, id: newId(), createdAt: stamp })
         added += 1
       }
     }

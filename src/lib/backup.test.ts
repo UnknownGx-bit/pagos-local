@@ -14,5 +14,8 @@ describe('compatibilidad de copias', () => {
     }
 
     expect(parseBackup(JSON.stringify(payload)).people[0]?.suspended).toBe(false)
+    expect(() => parseBackup(JSON.stringify({ ...payload, settings: { ...payload.settings, reminderTime: '' } }))).toThrow()
+    expect(() => parseBackup(JSON.stringify({ ...payload, accounts: [] }))).toThrow()
+    expect(() => parseBackup(JSON.stringify({ ...payload, people: [{ ...payload.people[0], devices: null }] }))).toThrow()
   })
 })
