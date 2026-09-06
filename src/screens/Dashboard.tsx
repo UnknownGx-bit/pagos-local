@@ -17,7 +17,8 @@ export function Dashboard({ accounts, people, settings, onAdd }: DashboardProps)
   const current = statuses.filter(({ status }) => status === 'current').length
   const upcoming = statuses.filter(({ status }) => status === 'upcoming' || status === 'due-today').length
   const overdue = statuses.filter(({ status }) => status === 'overdue' || status === 'manual-unpaid').length
-  const nextPayments = [...people]
+  const activePeople = people.filter((person) => !person.suspended)
+  const nextPayments = [...activePeople]
     .sort((a, b) => nextPaymentDate(a.joinDate, a.paidMonths).localeCompare(nextPaymentDate(b.joinDate, b.paidMonths)))
     .slice(0, 5)
 
@@ -37,14 +38,16 @@ export function Dashboard({ accounts, people, settings, onAdd }: DashboardProps)
       <section className="account-grid">
         {accounts.map((account, index) => {
           const accountPeople = people.filter((person) => person.accountId === account.id)
-          const paid = accountPeople.filter((person) => !['overdue', 'manual-unpaid'].includes(getPaymentStatus(person, settings))).length
-          const closest = [...accountPeople].sort((a, b) => nextPaymentDate(a.joinDate, a.paidMonths).localeCompare(nextPaymentDate(b.joinDate, b.paidMonths)))[0]
+          const activeAccountPeople = accountPeople.filter((person) => !person.suspended)
+          const suspended = accountPeople.length - activeAccountPeople.length
+          const paid = activeAccountPeople.filter((person) => !['overdue', 'manual-unpaid'].includes(getPaymentStatus(person, settings))).length
+          const closest = [...activeAccountPeople].sort((a, b) => nextPaymentDate(a.joinDate, a.paidMonths).localeCompare(nextPaymentDate(b.joinDate, b.paidMonths)))[0]
           return (
             <Link className="account-card" key={account.id} to={`/cuenta/${account.id}`}>
               <span className="account-number">0{index + 1}</span>
               <div className="account-card-title"><h3>{account.name}</h3><ChevronRight size={20} /></div>
               <p>{accountPeople.length} personas</p>
-              <div className="account-stats"><span><i className="dot paid" />Pagados {paid}</span><span><i className="dot pending" />Pendientes {accountPeople.length - paid}</span></div>
+              <div className="account-stats"><span><i className="dot paid" />Pagados {paid}</span><span><i className="dot pending" />Pendientes {activeAccountPeople.length - paid}</span>{suspended > 0 && <span><i className="dot suspended" />Suspendidos {suspended}</span>}</div>
               {closest && <small className="next-account-payment">Próximo: {closest.displayName} · {formatDate(nextPaymentDate(closest.joinDate, closest.paidMonths), { day: 'numeric', month: 'short' })}</small>}
             </Link>
           )
@@ -52,7 +55,7 @@ export function Dashboard({ accounts, people, settings, onAdd }: DashboardProps)
       </section>
       <button className="inline-primary-action" onClick={() => onAdd()}><Plus size={20} />Agregar persona</button>
       <section className="upcoming-panel">
-        <div className="section-heading compact"><div><span className="eyebrow">AGENDA</span><h2>Próximos pagos</h2></div>{people.length > 5 && <Link className="view-all" to="/pagos">Ver todos</Link>}</div>
+        <div className="section-heading compact"><div><span className="eyebrow">AGENDA</span><h2>Próximos pagos</h2></div>{activePeople.length > 5 && <Link className="view-all" to="/pagos">Ver todos</Link>}</div>
         {nextPayments.length ? nextPayments.map((person) => <Link key={person.id} to={`/persona/${person.id}`}><time>{formatDate(nextPaymentDate(person.joinDate, person.paidMonths), { day: '2-digit', month: 'short' })}</time><span>{person.displayName}<small>{accounts.find((item) => item.id === person.accountId)?.name}</small></span><ChevronRight size={18} /></Link>) : <div className="empty-state">Agrega o importa personas para ver sus próximos pagos.</div>}
       </section>
     </main>

@@ -47,11 +47,11 @@ export function newId() {
     : `${Date.now()}-${Math.random().toString(36).slice(2)}`
 }
 
-export type PersonInput = Pick<Person, 'accountId' | 'personNumber' | 'displayName' | 'phone' | 'devices' | 'joinDate' | 'paidMonths' | 'manuallyUnpaid' | 'needsReview' | 'reviewNotes'>
+export type PersonInput = Pick<Person, 'accountId' | 'personNumber' | 'displayName' | 'phone' | 'devices' | 'joinDate' | 'paidMonths' | 'manuallyUnpaid' | 'needsReview' | 'reviewNotes'> & Pick<Person, 'suspended'>
 
 export async function createPerson(input: PersonInput) {
   const stamp = new Date().toISOString()
-  const person: Person = { ...input, id: newId(), createdAt: stamp, updatedAt: stamp }
+  const person: Person = { ...input, suspended: input.suspended ?? false, id: newId(), createdAt: stamp, updatedAt: stamp }
   await db.people.add(person)
   return person
 }
@@ -75,7 +75,7 @@ export async function registerPayment(person: Person, months: number, paidAt = t
     newDueDate,
   }
   await db.transaction('rw', db.people, db.payments, async () => {
-    await db.people.update(person.id, { paidMonths, manuallyUnpaid: false, updatedAt: new Date().toISOString() })
+    await db.people.update(person.id, { paidMonths, manuallyUnpaid: false, suspended: false, updatedAt: new Date().toISOString() })
     await db.payments.add(payment)
   })
   return payment

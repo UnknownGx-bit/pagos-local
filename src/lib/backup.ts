@@ -35,7 +35,10 @@ export function parseBackup(text: string): BackupPayload {
       throw new Error('La copia contiene una persona con datos inválidos.')
     }
   }
-  return payload as BackupPayload
+  return {
+    ...payload,
+    people: payload.people.map((person) => ({ ...person, suspended: Boolean(person.suspended) })),
+  } as BackupPayload
 }
 
 export async function restoreBackup(payload: BackupPayload) {
@@ -64,6 +67,7 @@ export async function exportToExcel(settings: AppSettings) {
       'Meses pagados': person.paidMonths,
       'Próximo vencimiento': formatDate(nextDue),
       Estado: statusLabels[status],
+      Suspendido: person.suspended ? 'Sí' : 'No',
       'Requiere revisión': person.needsReview ? 'Sí' : 'No',
     }
   })

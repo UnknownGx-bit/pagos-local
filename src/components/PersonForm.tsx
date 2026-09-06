@@ -25,6 +25,7 @@ export function PersonForm({ accounts, initial, suggestedAccountId, suggestedNum
   const [joinDate, setJoinDate] = useState<ISODate>(initial?.joinDate ?? todayISO())
   const [paidMonths, setPaidMonths] = useState(initial?.paidMonths ?? 0)
   const [manuallyUnpaid, setManuallyUnpaid] = useState(initial?.manuallyUnpaid ?? false)
+  const [suspended] = useState(initial?.suspended ?? false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -59,6 +60,7 @@ export function PersonForm({ accounts, initial, suggestedAccountId, suggestedNum
         joinDate,
         paidMonths,
         manuallyUnpaid,
+        suspended,
         needsReview: false,
         reviewNotes: [],
       })

@@ -12,7 +12,7 @@ interface PaymentsViewProps {
 
 export function PaymentsView({ accounts, people, settings }: PaymentsViewProps) {
   const navigate = useNavigate()
-  const ordered = [...people].sort((a, b) => {
+  const ordered = people.filter((person) => !person.suspended).sort((a, b) => {
     const priority = statusPriority(getPaymentStatus(a, settings)) - statusPriority(getPaymentStatus(b, settings))
     return priority || nextPaymentDate(a.joinDate, a.paidMonths).localeCompare(nextPaymentDate(b.joinDate, b.paidMonths))
   })

@@ -10,5 +10,6 @@ describe('estado de pago', () => {
     expect(getPaymentStatus(base, { reminderDaysBefore: 2 }, '2026-09-03')).toBe('upcoming')
     expect(getPaymentStatus({ ...base, joinDate: '2026-09-03' }, { reminderDaysBefore: 2 }, '2026-09-03')).toBe('due-today')
     expect(getPaymentStatus({ ...base, manuallyUnpaid: true }, { reminderDaysBefore: 2 }, '2026-09-03')).toBe('manual-unpaid')
+    expect(getPaymentStatus({ ...base, manuallyUnpaid: true, suspended: true }, { reminderDaysBefore: 2 }, '2026-09-03')).toBe('suspended')
   })
 })

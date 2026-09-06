@@ -15,6 +15,7 @@ describe('notificaciones locales', () => {
 
   it('no programa una marca manual ni una fecha pasada', () => {
     expect(buildNotificationSchedule([{ ...person('1', 'Persona 1'), manuallyUnpaid: true }], settings, new Date(2026, 8, 1))).toHaveLength(0)
+    expect(buildNotificationSchedule([{ ...person('1', 'Persona 1'), suspended: true }], settings, new Date(2026, 8, 1))).toHaveLength(0)
     expect(buildNotificationSchedule([person('1', 'Persona 1')], settings, new Date(2026, 8, 12))).toHaveLength(0)
   })
 })

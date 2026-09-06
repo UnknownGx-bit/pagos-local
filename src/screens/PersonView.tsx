@@ -1,4 +1,4 @@
-import { ArrowLeft, CalendarDays, Edit3, History, MessageCircle, Smartphone, Trash2, UserRound, WalletCards } from 'lucide-react'
+import { ArrowLeft, CalendarDays, Edit3, History, MessageCircle, Pause, Play, Smartphone, Trash2, UserRound, WalletCards } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import type { Account, AppSettings, Payment, Person } from '../types'
@@ -57,6 +57,12 @@ export function PersonView({ accounts, people, payments, settings, afterMutation
     afterMutation(person!.manuallyUnpaid ? 'Marca de pago pendiente retirada.' : 'Marcado como “No ha pagado”.')
   }
 
+  async function toggleSuspended() {
+    const willSuspend = !person!.suspended
+    await updatePerson(person!.id, { suspended: willSuspend, ...(willSuspend ? { manuallyUnpaid: false } : {}) })
+    afterMutation(willSuspend ? 'Persona suspendida. Ya no aparecerá en próximos pagos.' : 'Persona reactivada.')
+  }
+
   async function remove() {
     await deletePerson(person!.id)
     afterMutation('Persona e historial eliminados.')
@@ -67,16 +73,18 @@ export function PersonView({ accounts, people, payments, settings, afterMutation
     <main>
       <header className="page-header person-header"><button className="icon-button" onClick={() => navigate(-1)} aria-label="Volver"><ArrowLeft size={20} /></button><div><span className="eyebrow">{account?.name ?? 'PERSONA'}</span><h1 className={person.manuallyUnpaid || status === 'overdue' ? 'unpaid-name' : ''}>{person.displayName}</h1><span className={`status-pill ${status}`}>{statusLabels[status]}</span></div><button className="icon-button" onClick={() => setEditOpen(true)} aria-label="Editar"><Edit3 size={20} /></button></header>
       {person.needsReview && <div className="review-banner"><strong>Requiere revisión</strong>{person.reviewNotes.map((note) => <span key={note}>{note}</span>)}</div>}
+      {person.suspended && <div className="suspended-notice"><Pause size={18} /><div><strong>Suscripción suspendida</strong><span>La persona se conserva, pero no cuenta como pendiente ni aparece en próximos pagos.</span></div></div>}
       <section className="profile-grid">
         <article><UserRound /><span>Teléfono</span><strong>{person.phone || 'Sin teléfono'}</strong></article>
         <article><CalendarDays /><span>Fecha de ingreso</span><strong>{formatDate(person.joinDate)}</strong></article>
         <article className="wide"><Smartphone /><span>Dispositivos</span><strong>{person.devices.join(' · ') || 'Sin dispositivos'}</strong></article>
       </section>
-      <section className="due-hero"><div><span>Próximo vencimiento</span><strong>{formatDate(due, { day: 'numeric', month: 'long', year: 'numeric' })}</strong>{period && <small>Periodo cubierto: {formatDate(period.start)} al {formatDate(period.end)}</small>}</div><div className="months-orb"><strong>{person.paidMonths}</strong><span>meses</span></div></section>
+      <section className="due-hero"><div><span>{person.suspended ? 'Vencimiento pausado' : 'Próximo vencimiento'}</span><strong>{formatDate(due, { day: 'numeric', month: 'long', year: 'numeric' })}</strong>{period && <small>Periodo cubierto: {formatDate(period.start)} al {formatDate(period.end)}</small>}</div><div className="months-orb"><strong>{person.paidMonths}</strong><span>meses</span></div></section>
       <div className="profile-actions">
-        <button className="primary-button large" onClick={() => setPaymentOpen(true)}><WalletCards size={20} />Registrar pago</button>
-        <button className={`secondary-button large ${person.manuallyUnpaid ? 'danger-outline' : ''}`} onClick={() => void toggleUnpaid()}>{person.manuallyUnpaid ? 'Quitar “No ha pagado”' : 'Marcar “No ha pagado”'}</button>
-        {whatsappUrl && <a className="whatsapp-button" href={whatsappUrl} target="_blank" rel="noreferrer"><MessageCircle size={20} />Enviar recordatorio</a>}
+        <button className="primary-button large" onClick={() => setPaymentOpen(true)}><WalletCards size={20} />{person.suspended ? 'Registrar pago y reactivar' : 'Registrar pago'}</button>
+        <button className={`secondary-button large suspension-button ${person.suspended ? 'reactivate' : ''}`} onClick={() => void toggleSuspended()}>{person.suspended ? <Play size={18} /> : <Pause size={18} />}{person.suspended ? 'Reactivar persona' : 'Suspender persona'}</button>
+        {!person.suspended && <button className={`secondary-button large ${person.manuallyUnpaid ? 'danger-outline' : ''}`} onClick={() => void toggleUnpaid()}>{person.manuallyUnpaid ? 'Quitar “No ha pagado”' : 'Marcar “No ha pagado”'}</button>}
+        {!person.suspended && whatsappUrl && <a className="whatsapp-button" href={whatsappUrl} target="_blank" rel="noreferrer"><MessageCircle size={20} />Enviar recordatorio</a>}
       </div>
       <section className="history-panel"><div className="inline-heading"><History size={19} /><div><h2>Historial de pagos</h2><p>{personPayments.length} movimientos</p></div></div>{personPayments.length ? personPayments.map((payment) => <article key={payment.id}><time>{new Intl.DateTimeFormat('es-MX', { dateStyle: 'medium' }).format(new Date(payment.paidAt))}</time><div><strong>Pago recibido: {payment.months} {payment.months === 1 ? 'mes' : 'meses'}</strong><span>Vencimiento anterior: {formatDate(payment.previousDueDate)}</span><span>Nuevo vencimiento: {formatDate(payment.newDueDate)}</span></div></article>) : <div className="empty-state compact">Aún no hay pagos registrados desde la app.</div>}</section>
       <button className="delete-link" onClick={() => setDeleteOpen(true)}><Trash2 size={17} />Eliminar persona</button>

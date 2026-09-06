@@ -16,6 +16,7 @@ export interface Person {
   joinDate: ISODate
   paidMonths: number
   manuallyUnpaid: boolean
+  suspended?: boolean
   needsReview: boolean
   reviewNotes: string[]
   createdAt: string
@@ -39,6 +40,7 @@ export interface AppSettings {
 }
 
 export type PaymentStatus =
+  | 'suspended'
   | 'current'
   | 'upcoming'
   | 'due-today'

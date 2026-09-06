@@ -10,11 +10,12 @@ beforeEach(async () => {
 
 describe('persistencia de personas y pagos', () => {
   it('registra varios meses, mueve de cuenta y elimina el historial', async () => {
-    const person = await createPerson({ accountId: 'account-1', personNumber: 1, displayName: 'Persona 1', phone: '555', devices: ['iPhone'], joinDate: '2026-08-06', paidMonths: 1, manuallyUnpaid: false, needsReview: false, reviewNotes: [] })
+    const person = await createPerson({ accountId: 'account-1', personNumber: 1, displayName: 'Persona 1', phone: '555', devices: ['iPhone'], joinDate: '2026-08-06', paidMonths: 1, manuallyUnpaid: false, suspended: true, needsReview: false, reviewNotes: [] })
     const payment = await registerPayment(person, 2, '2026-09-03')
     expect(payment.previousDueDate).toBe('2026-09-06')
     expect(payment.newDueDate).toBe('2026-11-06')
     expect((await db.people.get(person.id))?.paidMonths).toBe(3)
+    expect((await db.people.get(person.id))?.suspended).toBe(false)
     await updatePerson(person.id, { accountId: 'account-2', joinDate: '2026-01-31' })
     expect((await db.people.get(person.id))?.accountId).toBe('account-2')
     await deletePerson(person.id)

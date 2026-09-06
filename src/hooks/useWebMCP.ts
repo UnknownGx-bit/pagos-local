@@ -33,7 +33,7 @@ export function useWebMCP() {
         async execute() {
           const [people, settings] = await Promise.all([db.people.toArray(), db.settings.get('app-settings')])
           if (!settings) throw new Error('Falta la configuración de la aplicación.')
-          return people.map((person) => {
+          return people.filter((person) => !person.suspended).map((person) => {
             const status = getPaymentStatus(person, settings)
             return { id: person.id, person: person.displayName, dueDate: nextPaymentDate(person.joinDate, person.paidMonths), status: statusLabels[status] }
           }).filter((item) => item.status !== 'Al corriente').sort((a, b) => a.dueDate.localeCompare(b.dueDate))

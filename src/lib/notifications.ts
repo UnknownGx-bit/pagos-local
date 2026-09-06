@@ -14,7 +14,7 @@ export function buildNotificationSchedule(
 ): LocalNotificationSchema[] {
   const grouped = new Map<string, Person[]>()
   for (const person of people) {
-    if (person.manuallyUnpaid) continue
+    if (person.manuallyUnpaid || person.suspended) continue
     const dueDate = nextPaymentDate(person.joinDate, person.paidMonths)
     const reminderDate = addDays(dueDate, -settings.reminderDaysBefore)
     const at = localDateTime(reminderDate, settings.reminderTime)

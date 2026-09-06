@@ -12,7 +12,7 @@ interface AccountViewProps {
   onAdd: (accountId: string) => void
 }
 
-type Filter = 'all' | 'paid' | 'upcoming' | 'overdue' | 'manual-unpaid'
+type Filter = 'all' | 'paid' | 'upcoming' | 'overdue' | 'manual-unpaid' | 'suspended'
 type Sort = 'smart' | 'number' | 'name' | 'due' | 'recent'
 
 export function AccountView({ accounts, people, settings, onAdd }: AccountViewProps) {
@@ -31,7 +31,8 @@ export function AccountView({ accounts, people, settings, onAdd }: AccountViewPr
       if (filter === 'paid') return status === 'current'
       if (filter === 'upcoming') return status === 'upcoming' || status === 'due-today'
       if (filter === 'overdue') return status === 'overdue'
-      if (filter === 'manual-unpaid') return person.manuallyUnpaid
+      if (filter === 'manual-unpaid') return status === 'manual-unpaid'
+      if (filter === 'suspended') return status === 'suspended'
       return true
     }).sort((a, b) => {
       if (sort === 'number') return (a.personNumber ?? Number.MAX_SAFE_INTEGER) - (b.personNumber ?? Number.MAX_SAFE_INTEGER)
@@ -50,7 +51,7 @@ export function AccountView({ accounts, people, settings, onAdd }: AccountViewPr
       <header className="page-header"><button className="icon-button" onClick={() => navigate(-1)} aria-label="Volver"><ArrowLeft size={20} /></button><div><span className="eyebrow">CUENTA</span><h1>{account.name}</h1><p>{people.filter((person) => person.accountId === accountId).length} personas</p></div><button className="icon-button" onClick={() => onAdd(accountId)} aria-label="Agregar persona"><Plus size={21} /></button></header>
       <div className="search-box"><Search size={19} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar persona, teléfono o dispositivo" /></div>
       <div className="filter-strip" role="group" aria-label="Filtros">
-        {([['all', 'Todos'], ['paid', 'Pagados'], ['upcoming', 'Próximos'], ['overdue', 'Vencidos'], ['manual-unpaid', 'No ha pagado']] as const).map(([value, label]) => <button key={value} className={filter === value ? 'active' : ''} onClick={() => setFilter(value)}>{label}</button>)}
+        {([['all', 'Todos'], ['paid', 'Pagados'], ['upcoming', 'Próximos'], ['overdue', 'Vencidos'], ['manual-unpaid', 'No ha pagado'], ['suspended', 'Suspendidos']] as const).map(([value, label]) => <button key={value} className={filter === value ? 'active' : ''} onClick={() => setFilter(value)}>{label}</button>)}
       </div>
       <label className="sort-control"><SlidersHorizontal size={16} /><span>Ordenar</span><select value={sort} onChange={(event) => setSort(event.target.value as Sort)}><option value="smart">Atrasados y próximos</option><option value="number">Número de persona</option><option value="name">Nombre</option><option value="due">Próximo pago</option><option value="recent">Más recientes</option></select></label>
       <section className="person-list">
