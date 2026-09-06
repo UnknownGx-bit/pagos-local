@@ -234,6 +234,7 @@ main { min-height: calc(100dvh - 150px); animation: app-view-in .18s ease-out; }
 .account-card p, .account-stats, .person-card p, .person-card small,
 .person-card-footer, .profile-grid span, .upcoming-panel small,
 .preview-summary span, .privacy-note { color: var(--muted); }
+.upcoming-panel time { color: #91baff; }
 .person-card-footer, .history-panel > article { border-color: var(--line); }
 
 input, select {
