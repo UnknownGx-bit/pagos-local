@@ -1,6 +1,6 @@
 import { db } from '../db'
 import type { AppSettings, BackupPayload, ISODate } from '../types'
-import { downloadBlob } from './files'
+import { saveOrShareBlob } from './files'
 import { formatDate, isISODate, nextPaymentDate, todayISO } from './dates'
 import { getPaymentStatus, statusLabels } from './status'
 
@@ -17,9 +17,10 @@ export async function buildBackup(): Promise<BackupPayload> {
 
 export async function exportBackup() {
   const payload = await buildBackup()
-  downloadBlob(
+  await saveOrShareBlob(
     new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }),
     `pagos-local-respaldo-${todayISO()}.json`,
+    'Copia de seguridad de Pagos Local',
   )
 }
 
@@ -70,7 +71,11 @@ export async function exportToExcel(settings: AppSettings) {
   const sheet = XLSX.utils.json_to_sheet(rows)
   XLSX.utils.book_append_sheet(workbook, sheet, 'Personas')
   const output = XLSX.write(workbook, { type: 'array', bookType: 'xlsx' })
-  downloadBlob(new Blob([output], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), `pagos-local-${todayISO()}.xlsx`)
+  await saveOrShareBlob(
+    new Blob([output], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }),
+    `pagos-local-${todayISO()}.xlsx`,
+    'Exportación de Pagos Local',
+  )
 }
 
 export function dueDateAsISO(value: string): ISODate {

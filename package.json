@@ -1,7 +1,7 @@
 {
   "name": "pagos-local",
   "private": true,
-  "version": "1.2.0",
+  "version": "1.2.1",
   "packageManager": "pnpm@11.19.0",
   "type": "module",
   "scripts": {
@@ -13,7 +13,9 @@
   },
   "dependencies": {
     "@capacitor/core": "^7.4.3",
+    "@capacitor/filesystem": "^7.1.8",
     "@capacitor/local-notifications": "^7.0.3",
+    "@capacitor/share": "^7.0.4",
     "dexie": "^4.2.1",
     "dexie-react-hooks": "^4.2.0",
     "lucide-react": "^0.468.0",
