@@ -44,7 +44,7 @@ export function Dashboard({ accounts, people, settings, onAdd }: DashboardProps)
           const closest = [...activeAccountPeople].sort((a, b) => nextPaymentDate(a.joinDate, a.paidMonths).localeCompare(nextPaymentDate(b.joinDate, b.paidMonths)))[0]
           return (
             <Link className="account-card" key={account.id} to={`/cuenta/${account.id}`}>
-              <span className="account-number">0{index + 1}</span>
+              <span className="account-number">{String(index + 1).padStart(2, '0')}</span>
               <div className="account-card-title"><h3>{account.name}</h3><ChevronRight size={20} /></div>
               <p>{accountPeople.length} personas</p>
               <div className="account-stats"><span><i className="dot paid" />Pagados {paid}</span><span><i className="dot pending" />Pendientes {activeAccountPeople.length - paid}</span>{suspended > 0 && <span><i className="dot suspended" />Suspendidos {suspended}</span>}</div>

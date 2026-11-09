@@ -3,8 +3,10 @@ import type { AppSettings, BackupPayload, ISODate } from '../types'
 import { saveOrShareBlob } from './files'
 import { formatDate, isISODate, nextPaymentDate, todayISO } from './dates'
 import { getPaymentStatus, statusLabels } from './status'
+import { upgradeReminderSettings } from './settings'
 
 export async function buildBackup(): Promise<BackupPayload> {
+  return db.transaction('r', db.accounts, db.people, db.payments, db.settings, async () => {
   const [accounts, people, payments, settings] = await Promise.all([
     db.accounts.orderBy('order').toArray(),
     db.people.toArray(),
@@ -13,6 +15,7 @@ export async function buildBackup(): Promise<BackupPayload> {
   ])
   if (!settings) throw new Error('No se encontró la configuración de la aplicación.')
   return { format: 'pagos-local-backup', version: 1, exportedAt: new Date().toISOString(), accounts, people, payments, settings }
+  })
 }
 
 export async function exportBackup() {
@@ -66,7 +69,7 @@ export async function restoreBackup(payload: BackupPayload) {
     await db.accounts.bulkAdd(payload.accounts)
     await db.people.bulkAdd(payload.people)
     await db.payments.bulkAdd(payload.payments)
-    await db.settings.add(payload.settings)
+    await db.settings.add(upgradeReminderSettings(payload.settings))
   })
 }
 

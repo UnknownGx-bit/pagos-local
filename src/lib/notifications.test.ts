@@ -18,4 +18,15 @@ describe('notificaciones locales', () => {
     expect(buildNotificationSchedule([{ ...person('1', 'Persona 1'), suspended: true }], settings, new Date(2026, 8, 1))).toHaveLength(0)
     expect(buildNotificationSchedule([person('1', 'Persona 1')], settings, new Date(2026, 8, 12))).toHaveLength(0)
   })
+
+  it('avisa un día antes a las 10:00 y cruza correctamente el cambio de mes', () => {
+    const result = buildNotificationSchedule([{ ...person('1', 'Persona 1'), joinDate: '2026-03-01' }], { ...settings, reminderDaysBefore: 1 }, new Date(2026, 1, 27, 20))
+    const at = result[0]?.schedule?.at
+    expect(at?.getMonth()).toBe(1)
+    expect(at?.getDate()).toBe(28)
+    expect(at?.getHours()).toBe(10)
+    expect(at?.getMinutes()).toBe(0)
+    expect(result[0]?.body).toContain('mañana')
+    expect(result[0]?.channelId).toBe('pagos-vencimientos')
+  })
 })

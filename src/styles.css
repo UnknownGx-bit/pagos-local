@@ -155,6 +155,7 @@ input:focus, select:focus { border-color: #49677f; box-shadow: 0 0 0 3px rgba(29
 .payment-dialog { display: grid; gap: 17px; }.quick-options { display: flex; flex-wrap: wrap; justify-content: center; gap: 7px; }
 
 .settings-section { margin-bottom: 15px; padding: 17px; background: #fff; border: 1px solid #dfe5e9; border-radius: 17px; }.settings-section h2 { margin: 0; color: #173149; font-size: 1rem; }.settings-section > p { margin: 6px 0 15px; color: #7b8794; font-size: .73rem; line-height: 1.5; }
+.account-create { margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--line, #dfe5e9); }
 .settings-button, .settings-actions button { width: 100%; display: grid; grid-template-columns: 34px 1fr; align-items: center; gap: 10px; padding: 12px; color: #173149; text-align: left; background: #f5f7f8; border: 1px solid #e1e6e9; border-radius: 13px; }.settings-button { margin-top: 12px; }.settings-button svg, .settings-actions svg { color: #496980; }.settings-button span, .settings-actions span { display: grid; gap: 3px; }.settings-button small, .settings-actions small { color: #7d8996; font-size: .66rem; font-weight: 500; line-height: 1.35; }
 .save-settings { margin-bottom: 18px; }.settings-actions { display: grid; gap: 8px; }.about-card { display: flex; gap: 12px; }.about-card svg { flex: 0 0 auto; color: #496980; }.about-card p { margin-bottom: 0; }
 .toast { position: fixed; z-index: 150; left: 50%; bottom: calc(94px + env(safe-area-inset-bottom)); transform: translateX(-50%); width: min(calc(100% - 34px), 540px); display: flex; align-items: center; justify-content: center; gap: 8px; padding: 13px 16px; color: #fff; background: #173149; border-radius: 14px; box-shadow: 0 13px 30px rgba(15,39,64,.3); font-size: .8rem; font-weight: 700; animation: toast-in .2s ease-out; }
@@ -193,7 +194,7 @@ input:focus, select:focus { border-color: #49677f; box-shadow: 0 0 0 3px rgba(29
 html, body, #root { min-height: 100%; background: var(--navy-950); }
 body { color: var(--text); background: var(--navy-950); overflow-x: hidden; }
 button, a { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
-main { min-height: calc(100dvh - 150px); animation: app-view-in .18s ease-out; }
+main { min-height: calc(100dvh - 150px); }
 @keyframes app-view-in { from { opacity: .55; transform: translateY(4px); } }
 
 .app-shell { width: min(100%, 760px); background: var(--navy-950); }
@@ -284,6 +285,7 @@ input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px r
 
 .bottom-nav {
   background: rgba(12, 31, 47, .96);
+  backdrop-filter: none;
   border-color: var(--line);
   box-shadow: 0 14px 36px rgba(0,0,0,.28);
 }

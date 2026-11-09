@@ -1,10 +1,11 @@
 import { ArrowLeft, CalendarDays, Edit3, History, MessageCircle, Pause, Play, Smartphone, Trash2, UserRound, WalletCards } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import type { Account, AppSettings, Payment, Person } from '../types'
+import type { Account, AppSettings, Person } from '../types'
+import { useLiveQuery } from 'dexie-react-hooks'
 import { coveredPeriod, formatDate, nextPaymentDate } from '../lib/dates'
 import { getPaymentStatus, statusLabels } from '../lib/status'
-import { deletePerson, registerPayment, updatePerson, type PersonInput } from '../db'
+import { db, deletePerson, registerPayment, updatePerson, type PersonInput } from '../db'
 import { Modal } from '../components/Modal'
 import { Stepper } from '../components/Stepper'
 import { PersonForm } from '../components/PersonForm'
@@ -13,15 +14,15 @@ import { whatsappReminderUrl } from '../lib/whatsapp'
 interface PersonViewProps {
   accounts: Account[]
   people: Person[]
-  payments: Payment[]
   settings: AppSettings
   afterMutation: (message: string) => void
 }
 
-export function PersonView({ accounts, people, payments, settings, afterMutation }: PersonViewProps) {
+export function PersonView({ accounts, people, settings, afterMutation }: PersonViewProps) {
   const { personId = '' } = useParams()
   const navigate = useNavigate()
   const person = people.find((item) => item.id === personId)
+  const personPayments = useLiveQuery(() => db.payments.where('personId').equals(personId).reverse().sortBy('paidAt'), [personId]) ?? []
   const [paymentOpen, setPaymentOpen] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
@@ -35,7 +36,6 @@ export function PersonView({ accounts, people, payments, settings, afterMutation
   const status = getPaymentStatus(person, settings)
   const due = nextPaymentDate(person.joinDate, person.paidMonths)
   const period = coveredPeriod(person.joinDate, person.paidMonths)
-  const personPayments = payments.filter((payment) => payment.personId === person.id).sort((a, b) => b.paidAt.localeCompare(a.paidAt))
   const whatsappUrl = whatsappReminderUrl(person.phone, due)
 
   async function pay() {

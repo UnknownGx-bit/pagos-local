@@ -1,7 +1,7 @@
 import { Plus, Trash2 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { Account, ISODate, Person } from '../types'
-import type { PersonInput } from '../db'
+import { nextPersonNumber, type PersonInput } from '../db'
 import { Stepper } from './Stepper'
 import { todayISO } from '../lib/dates'
 import { personReviewNotes } from '../lib/personReview'
@@ -27,17 +27,31 @@ export function PersonForm({ accounts, initial, suggestedAccountId, suggestedNum
   const [manuallyUnpaid, setManuallyUnpaid] = useState(initial?.manuallyUnpaid ?? false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const previousAccount = useRef(accountId)
+  const [numberLoading, setNumberLoading] = useState(false)
 
   useEffect(() => {
-    if (!initial && displayName === `Persona ${personNumber}` && personNumber !== suggestedNumber) {
-      setPersonNumber(suggestedNumber)
-      setDisplayName(`Persona ${suggestedNumber}`)
-    }
-  }, [suggestedNumber])
+    if (initial || previousAccount.current === accountId) return
+    previousAccount.current = accountId
+    let cancelled = false
+    setNumberLoading(true)
+    void nextPersonNumber(accountId).then((number) => {
+      if (cancelled) return
+      setPersonNumber(number)
+      setDisplayName((name) => /^Persona \d+$/i.test(name) ? `Persona ${number}` : name)
+    }).catch(() => { if (!cancelled) setError('No se pudo consultar el lugar libre. Intenta de nuevo.') })
+      .finally(() => { if (!cancelled) setNumberLoading(false) })
+    return () => { cancelled = true }
+  }, [accountId, initial])
+
+  function changeNumber(number: number) {
+    setDisplayName((name) => name === `Persona ${personNumber}` ? `Persona ${number}` : name)
+    setPersonNumber(number)
+  }
 
   async function submit(event: React.FormEvent) {
     event.preventDefault()
-    if (saving) return
+    if (saving || numberLoading) return
     setError('')
     if (!accountId || !displayName.trim() || !joinDate) {
       setError('Completa la cuenta, el nombre y la fecha de ingreso.')
@@ -73,7 +87,7 @@ export function PersonForm({ accounts, initial, suggestedAccountId, suggestedNum
     <form className="form-stack" onSubmit={submit}>
       <label>Cuenta<select value={accountId} onChange={(event) => setAccountId(event.target.value)}>{accounts.map((account) => <option key={account.id} value={account.id}>{account.name}</option>)}</select></label>
       <div className="form-row">
-        <label>Número<input type="number" min="1" inputMode="numeric" value={personNumber ?? ''} onChange={(event) => setPersonNumber(Number(event.target.value))} /></label>
+        <label>Número<input type="number" min="1" step="1" inputMode="numeric" value={personNumber ?? ''} onChange={(event) => changeNumber(Number(event.target.value))} /></label>
         <label>Nombre<input value={displayName} onChange={(event) => setDisplayName(event.target.value)} placeholder="Persona 1" /></label>
       </div>
       <label>Teléfono<input type="tel" inputMode="tel" value={phone} onChange={(event) => { setPhone(event.target.value); setError('') }} placeholder="Número celular" /></label>
@@ -92,7 +106,7 @@ export function PersonForm({ accounts, initial, suggestedAccountId, suggestedNum
       <Stepper label="Meses pagados" value={paidMonths} onChange={setPaidMonths} />
       <label className="check-row"><input type="checkbox" checked={manuallyUnpaid} onChange={(event) => setManuallyUnpaid(event.target.checked)} /><span>Marcar como “No ha pagado”</span></label>
       {error && <p className="error-message">{error}</p>}
-      <div className="form-actions"><button className="secondary-button" type="button" onClick={onCancel} disabled={saving}>Cancelar</button><button className="primary-button" type="submit" disabled={saving}>{saving ? 'Guardando…' : submitLabel}</button></div>
+      <div className="form-actions"><button className="secondary-button" type="button" onClick={onCancel} disabled={saving}>Cancelar</button><button className="primary-button" type="submit" disabled={saving || numberLoading}>{saving ? 'Guardando…' : numberLoading ? 'Buscando lugar…' : submitLabel}</button></div>
     </form>
   )
 }

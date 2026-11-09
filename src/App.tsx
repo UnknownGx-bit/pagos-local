@@ -1,9 +1,10 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { HashRouter, Route, Routes, useNavigate } from 'react-router-dom'
+import { HashRouter, MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { useCallback, useEffect, useState } from 'react'
 import { CheckCircle2 } from 'lucide-react'
-import { createPerson, db, defaultSettings, nextPersonNumber, type PersonInput } from './db'
-import { rescheduleNotifications } from './lib/notifications'
+import { createPerson, db, defaultSettings, type PersonInput } from './db'
+import { useReminders } from './hooks/useReminders'
+import { Capacitor } from '@capacitor/core'
 import { AppFrame } from './components/AppFrame'
 import { Modal } from './components/Modal'
 import { PersonForm } from './components/PersonForm'
@@ -17,16 +18,16 @@ import { PaymentsView } from './screens/PaymentsView'
 import { useWebMCP } from './hooks/useWebMCP'
 import { useAppNavigation } from './hooks/useAppNavigation'
 import { todayISO } from './lib/dates'
+import { accountForNewPerson, firstAvailablePersonNumber } from './lib/people'
 
 function Application() {
   const navigate = useNavigate()
+  const location = useLocation()
   const accountRows = useLiveQuery(() => db.accounts.orderBy('order').toArray(), [])
   const personRows = useLiveQuery(() => db.people.toArray(), [])
-  const paymentRows = useLiveQuery(() => db.payments.toArray(), [])
   const settingsRow = useLiveQuery(() => db.settings.get('app-settings'), [])
   const accounts = accountRows ?? []
   const people = personRows ?? []
-  const payments = paymentRows ?? []
   const settings = settingsRow ?? defaultSettings
   const [addOpen, setAddOpen] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
@@ -49,18 +50,16 @@ function Application() {
     return () => window.clearTimeout(timer)
   }, [toast])
 
-  useEffect(() => {
-    if (settings.onboarded) void rescheduleNotifications(people, settings).catch(() => undefined)
-  }, [people, settings, today])
+  const remindersError = useReminders(people, settings, today, accounts)
 
   const afterMutation = useCallback((message: string) => {
     setToast(message)
   }, [])
 
-  async function openAdd(accountId?: string) {
-    const target = accountId ?? accounts[0]?.id ?? 'account-1'
+  function openAdd(accountId?: string) {
+    const target = accountId ?? accountForNewPerson(location.pathname, accounts, people)
     setSuggestedAccountId(target)
-    setSuggestedNumber(await nextPersonNumber(target))
+    setSuggestedNumber(firstAvailablePersonNumber(people.filter((person) => person.accountId === target)))
     setAddOpen(true)
   }
 
@@ -76,7 +75,7 @@ function Application() {
     setToast('Las cuatro cuentas están listas.')
   }
 
-  if (!accountRows || !personRows || !paymentRows || !settingsRow) {
+  if (!accountRows || !personRows || !settingsRow) {
     return <div className="loading-screen"><div className="welcome-mark">PL</div><span>Cargando tus datos…</span></div>
   }
 
@@ -86,10 +85,11 @@ function Application() {
 
   return (
     <AppFrame onAddPerson={() => void openAdd()}>
+      {remindersError && <div className="error-message" role="alert">No se pudieron programar los avisos. <button className="text-button" onClick={() => navigate('/configuracion')}>Revisar permisos</button></div>}
       <Routes>
         <Route path="/" element={<Dashboard accounts={accounts} people={people} settings={settings} onAdd={(accountId) => void openAdd(accountId)} />} />
         <Route path="/cuenta/:accountId" element={<AccountView accounts={accounts} people={people} settings={settings} onAdd={(accountId) => void openAdd(accountId)} />} />
-        <Route path="/persona/:personId" element={<PersonView accounts={accounts} people={people} payments={payments} settings={settings} afterMutation={afterMutation} />} />
+        <Route path="/persona/:personId" element={<PersonView accounts={accounts} people={people} settings={settings} afterMutation={afterMutation} />} />
         <Route path="/pagos" element={<PaymentsView accounts={accounts} people={people} settings={settings} />} />
         <Route path="/configuracion" element={<SettingsView accounts={accounts} settings={settings} onImportExcel={() => setImportOpen(true)} afterMutation={afterMutation} />} />
       </Routes>
@@ -101,5 +101,7 @@ function Application() {
 }
 
 export function App() {
-  return <HashRouter><Application /></HashRouter>
+  return Capacitor.isNativePlatform()
+    ? <MemoryRouter useTransitions={false}><Application /></MemoryRouter>
+    : <HashRouter><Application /></HashRouter>
 }

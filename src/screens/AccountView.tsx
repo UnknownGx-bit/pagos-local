@@ -2,7 +2,7 @@ import { ArrowLeft, Plus, Search, SlidersHorizontal } from 'lucide-react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useMemo, useState } from 'react'
 import type { Account, AppSettings, PaymentStatus, Person } from '../types'
-import { formatDate, nextPaymentDate } from '../lib/dates'
+import { formatDate, nextPaymentDate, todayISO } from '../lib/dates'
 import { getPaymentStatus, statusLabels, statusPriority } from '../lib/status'
 
 interface AccountViewProps {
@@ -22,6 +22,7 @@ export function AccountView({ accounts, people, settings, onAdd }: AccountViewPr
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState<Filter>('all')
   const [sort, setSort] = useState<Sort>('smart')
+  const today = todayISO()
 
   const filtered = useMemo(() => {
     const search = query.trim().toLowerCase()
@@ -42,7 +43,7 @@ export function AccountView({ accounts, people, settings, onAdd }: AccountViewPr
       const statusDifference = statusPriority(getPaymentStatus(a, settings)) - statusPriority(getPaymentStatus(b, settings))
       return statusDifference || nextPaymentDate(a.joinDate, a.paidMonths).localeCompare(nextPaymentDate(b.joinDate, b.paidMonths))
     })
-  }, [accountId, filter, people, query, settings, sort])
+  }, [accountId, filter, people, query, settings, sort, today])
 
   if (!account) return <div className="empty-state">No se encontró esta cuenta.</div>
 

@@ -7,9 +7,16 @@ const source = java.split('// Never interpret')[1]!.split('handled ->')[0]!
 const script = [...source.matchAll(/"(?:\\.|[^"\\])*"/g)].map(([literal]) => JSON.parse(literal)).join('')
 const back = () => window.eval(script)
 
-afterEach(() => { document.body.innerHTML = ''; vi.restoreAllMocks() })
+afterEach(() => { document.body.innerHTML = ''; delete document.documentElement.dataset.appRouter; delete document.documentElement.dataset.appRoute; vi.restoreAllMocks() })
 
 describe('puente nativo Atrás', () => {
+  it('no cierra una pantalla nativa si el listener todavía no está listo', () => {
+    document.documentElement.dataset.appRouter = 'memory'
+    document.documentElement.dataset.appRoute = '/cuenta/account-5'
+    expect(back()).toBe('loading')
+    document.documentElement.dataset.appRoute = '/'
+    expect(back()).toBe('home')
+  })
   it('usa el historial aunque no exista el listener de React', () => {
     window.history.replaceState({ idx: 1 }, '', '/#/persona/test')
     const previous = vi.spyOn(window.history, 'back').mockImplementation(() => {})

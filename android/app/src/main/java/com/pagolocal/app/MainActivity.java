@@ -35,6 +35,8 @@ public class MainActivity extends BridgeActivity {
                     "if(!window.dispatchEvent(new Event('pagos-native-back',{cancelable:true})))return 'handled';" +
                     "const dialogs=document.querySelectorAll('[role=dialog]');" +
                     "if(dialogs.length){const close=dialogs[dialogs.length-1].querySelector('[aria-label=\"Cerrar\"]');if(close)close.click();return 'handled';}" +
+                    "const root=document.documentElement;" +
+                    "if(root.dataset.appRouter==='memory')return root.dataset.appRoute==='/'?'home':'loading';" +
                     "const route=location.hash.replace(/^#/, '').split('?')[0];" +
                     "if(route&&route!=='/'){if(Number(history.state?.idx)>0)history.back();else location.hash='/';return 'handled';}" +
                     "return document.querySelector('main')?'home':'loading';" +

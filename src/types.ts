@@ -37,6 +37,8 @@ export interface AppSettings {
   reminderDaysBefore: number
   reminderTime: string
   onboarded: boolean
+  reminderPolicyVersion?: 1
+  notificationPrompted?: boolean
 }
 
 export type PaymentStatus =

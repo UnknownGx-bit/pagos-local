@@ -76,7 +76,7 @@ export function ImportExcelDialog({ open, accounts, onClose, onImported }: Impor
         <div className="file-drop">
           <FileSpreadsheet size={42} />
           <h3>Selecciona tu archivo</h3>
-          <p>Se analizarán únicamente las tablas de personas de las primeras cuatro hojas.</p>
+          <p>Se analizarán las tablas de personas de las primeras {accounts.length} hojas, una por cuenta.</p>
           <button className="primary-button" type="button" onClick={() => fileInput.current?.click()} disabled={loading}><Upload size={18} />{loading ? 'Analizando…' : 'Elegir Excel'}</button>
         </div>
       ) : (
